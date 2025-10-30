@@ -1,0 +1,15 @@
+FROM python:latest
+
+# Set apt to noninteractive mode for the build.
+ARG DEBIAN_FRONTEND=noninteractive  
+
+RUN apt update -y && apt install -y sudo
+
+RUN useradd -ms /bin/bash user
+RUN echo "user    ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/user
+RUN chmod 440 /etc/sudoers.d/user
+USER user
+WORKDIR /home/user
+
+COPY students/setup.py .
+RUN python setup.py --log=DEBUG
