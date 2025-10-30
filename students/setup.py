@@ -56,8 +56,14 @@ def vscode_download_url(version: str) -> str:
             return ''
 
 
-def vscode_cmd() -> str | None:
+def maybe_vscode_cmd() -> str | None:
     return shutil.which('code')
+
+def vscode_cmd() -> str:
+    maybe_cmd = maybe_vscode_cmd()
+    if not maybe_cmd:
+        logger.fatal('VSCode is not in PATH when it should have!')
+    return maybe_cmd # type: ignore
 
 def vscode_file_extension() -> str:
         match platform.system():
@@ -153,7 +159,7 @@ def maybe_install_vscode() -> bool:
 
 
 def get_existing_vscode_extensions() -> set[str]:
-    output = subprocess.run(['code', '--list-extensions'],
+    output = subprocess.run([vscode_cmd(), '--list-extensions'],
                             capture_output=True, encoding='utf8')
     if output.returncode != 0:
         logger.fatal(
@@ -162,7 +168,7 @@ def get_existing_vscode_extensions() -> set[str]:
 
 
 def install_extension(ext: str) -> bool:
-    output = subprocess.run(['code', '--install-extension', ext])
+    output = subprocess.run([vscode_cmd(), '--install-extension', ext])
     return output.returncode == 0
 
 
