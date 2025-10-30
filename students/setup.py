@@ -143,7 +143,7 @@ def maybe_install_vscode() -> bool:
                             f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
                         return False
             case 'Darwin' | 'Windows':
-                # For MacOS/Windows, we get a self installer so make it installable first.
+                # For MacOS/Windows, the file is an installer so make it runnable.
                 os.chmod(fp.name, 0x755)
                 output = subprocess.run([fp.name])
                 return output.returncode == 0
