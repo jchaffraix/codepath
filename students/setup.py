@@ -13,6 +13,7 @@ The script will:
 import argparse
 import logging
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -34,17 +35,17 @@ def vscode_download_url(version: str) -> str:
             # TODO: This logic is pretty brittle.
             info = platform.freedesktop_os_release()
             id = info["ID"]
-            logger.debug('Detected a Linux instance, with id={id}')
+            logger.debug(f'Detected a Linux instance, with id={id}')
             match id:
                 # Deb-based distributions.
                 case 'ubuntu' | 'debian':
-                    return 'https://update.code.visualstudio.com/{version}/linux-deb-x64/stable'
+                    return f'https://update.code.visualstudio.com/{version}/linux-deb-x64/stable'
                 # Rpm-based distributions.
                 case 'rhel' | 'fedora':
-                    return 'https://update.code.visualstudio.com/{version}/linux-rpm-x64/stable'
+                    return f'https://update.code.visualstudio.com/{version}/linux-rpm-x64/stable'
                 case _:
                     logger.fatal(
-                        'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
+                        f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
                     return ''
         case 'Darwin':
             return f'https://update.code.visualstudio.com/{version}/darwin-universal/stable'
@@ -58,6 +59,28 @@ def vscode_download_url(version: str) -> str:
 def vscode_cmd() -> str | None:
     return shutil.which('code')
 
+def vscode_file_extension() -> str:
+        match platform.system():
+            case 'Linux':
+                info = platform.freedesktop_os_release()
+                id = info["ID"]
+                match id:
+                    # Deb-based distributions.
+                    case 'ubuntu' | 'debian':
+                        return '.deb'
+
+                    # Rpm-based distributions.
+                    case 'rhel' | 'fedora':
+                        return '.rpm'
+                    case _:
+                        return ''
+            case 'Darwin':
+                return ''
+            case 'Windows':
+                return '.exe'
+            case _:
+                return ''
+
 
 def maybe_install_vscode() -> bool:
     '''
@@ -70,6 +93,7 @@ def maybe_install_vscode() -> bool:
         print('Found a VSCode installation, skipping installation... 🌟')
         return True
 
+    logger.debug('About to download the stable versions of VSCode')
     content = urllib.request.urlopen(
         'https://update.code.visualstudio.com/api/releases/stable').read()
     if not content:
@@ -77,6 +101,7 @@ def maybe_install_vscode() -> bool:
         return False
 
     versions = json.loads(content)
+    logger.debug(f'Got versions={versions}')
     if not isinstance(versions, list):
         logger.fatal(
             'Parsing latest VSCode version failed. Please let us know!')
@@ -85,15 +110,46 @@ def maybe_install_vscode() -> bool:
         logger.fatal(
             'Parsing latest VSCode version failed. Please let us know!')
 
-    with tempfile.TemporaryFile() as fp:
-        url = vscode_download_url(versions[0])  # type: ignore
-        content = urllib.request.urlopen(url).read()
-        if not content:
-            logger.error('Got an empty payload instead of vscode binary')
-            return False
+    logger.debug(f'Latest version {versions[0]}')
+    url = vscode_download_url(versions[0])  # type: ignore
+    logger.debug(f'About to download from {url}')
+    content = urllib.request.urlopen(url).read()
+    if not content:
+        logger.error('Got an empty payload instead of vscode binary')
+        return False
+    logger.debug(f'Successfully downloaded VSCode')
+
+    with tempfile.NamedTemporaryFile(suffix=vscode_file_extension()) as fp:
+        logger.debug(f'Temporary file: {fp.name}')
         fp.write(content)
-        output = subprocess.run(fp.name)
-        return output.returncode == 0
+        match platform.system():
+            case 'Linux':
+                info = platform.freedesktop_os_release()
+                id = info["ID"]
+                logger.debug(f'Detected a Linux instance, with id={id}')
+                match id:
+                    # Deb-based distributions.
+                    case 'ubuntu' | 'debian':
+                        output = subprocess.run(['sudo', 'apt', 'install', '-y', fp.name])
+                        return output.returncode == 0
+
+                    # Rpm-based distributions.
+                    case 'rhel' | 'fedora':
+                        output = subprocess.run(['sudo', 'dnf', 'install', fp.name])
+                        return output.returncode == 0
+
+                    case _:
+                        logger.fatal(
+                            f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
+                        return False
+            case 'Darwin' | 'Windows':
+                # For MacOS/Windows, we get a self installer so make it installable first.
+                os.chmod(fp.name, 0x755)
+                output = subprocess.run([fp.name])
+                return output.returncode == 0
+            case _:
+                logger.fatal(f'Unsupported platform {platform.system()}')
+                return False
 
 
 def get_existing_vscode_extensions() -> set[str]:
