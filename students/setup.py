@@ -95,7 +95,7 @@ def maybe_install_vscode() -> bool:
         Returns False if it encounters an error.
         Returns True if VScode is present on the system, either already installed or newly installed.
     '''
-    if vscode_cmd() is not None:
+    if maybe_vscode_cmd() is not None:
         print('Found a VSCode installation, skipping installation... 🌟')
         return True
 
