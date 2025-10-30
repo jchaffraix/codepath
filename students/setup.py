@@ -10,6 +10,7 @@ The script will:
 # TODO: Add some logic to chooose auto-formatter (autopep8 or black)
 # TODO: Add some logic for setting .vscode/settings.json (merge with existing)
 '''
+import argparse
 import logging
 import json
 import platform
@@ -18,8 +19,6 @@ import subprocess
 import tempfile
 import urllib.request
 import sys
-
-logger = logging.getLogger(__name__)
 
 
 # The list should be the full extension name in the MarketPlace:
@@ -152,6 +151,15 @@ def install_all() -> None:
         print('Failed to install VSCode extensions, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
     print('All done 🌟🌟🌟')
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-log", "--log", help="Provide logging level. Example --log debug'")
+
+log_level = parser.parse_args().log
+logging.basicConfig(level=log_level)
+logger = logging.getLogger('setup.py')
+logger.debug(log_level)
 
 if __name__ == '__main__':
     install_all()
