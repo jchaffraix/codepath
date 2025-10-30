@@ -135,7 +135,7 @@ def maybe_install_vscode() -> bool:
 
                     # Rpm-based distributions.
                     case 'rhel' | 'fedora':
-                        output = subprocess.run(['sudo', 'dnf', 'install', fp.name])
+                        output = subprocess.run(['sudo', 'dnf', 'install', '-y', fp.name])
                         return output.returncode == 0
 
                     case _:
