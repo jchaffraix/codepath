@@ -1,0 +1,8 @@
+# VIM
+*.swp
+
+# Vale sync file, use `vale sync` to regenerate from ini as needed.
+vale_styles/
+
+# Ignore any Python artifact.
+**/__pycache__/
