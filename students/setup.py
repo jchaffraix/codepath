@@ -8,7 +8,6 @@ The script will:
 * Install the latest version of VSCode (if not installed)
 * Install the recommended extensions (when not installed)
 # TODO: Add some logic to chooose auto-formatter (autopep8 or black)
-# TODO: Add some logic for setting .vscode/settings.json (merge with existing)
 '''
 import argparse
 import logging
