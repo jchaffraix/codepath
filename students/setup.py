@@ -209,8 +209,12 @@ def install_all() -> None:
     logger.info("Passed Python version check")
     if not maybe_install_vscode():
         print('Failed to install VSCode, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
+        return
+
     if not maybe_install_vscode_extensions():
         print('Failed to install VSCode extensions, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
+        return
+
     print('All done 🌟🌟🌟')
 
 
