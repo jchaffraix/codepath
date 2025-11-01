@@ -12,4 +12,4 @@ USER user
 WORKDIR /home/user
 
 COPY students/setup.py .
-RUN python setup.py --log=DEBUG
+RUN python setup.py -y --log=DEBUG

@@ -27,6 +27,11 @@ import sys
 # You can find the full name in the URL and the command to install an individual extension.
 COMMON_VSCODE_EXTENSIONS = ['ms-python.python']
 
+# This is the list of recommended settings to set in .vscode/settings.json.
+# See the function setup_vscode_settings for the merging behavior.
+RECOMMENDED_VSCODE_SETTINGS = {
+    "python.analysis.typeCheckingMode": "strict"
+}
 
 def vscode_download_url(version: str) -> str:
     logger.debug(f'Running on platform: {platform.system()}')
@@ -199,6 +204,65 @@ def maybe_install_vscode_extensions() -> bool:
 
     return True
 
+def setup_vscode_settings(path: str) -> bool:
+    '''
+        Set up .vscode/settings.json based on RECOMMENDED_VSCODE_SETTINGS.
+
+        This function reads the existing settings file.
+        For each recommended settings, it does the following:
+        - If a setting is absent in the file, the function sets it.
+        - If a setting exists and doesn't match the recommended value, the function prints a warning.
+        - If a setting exists and matches the recommended value, the function does nothing.
+    '''
+    settings_dir = os.path.join(path, '.vscode')
+    settings_path = os.path.join(settings_dir, 'settings.json')
+    settings = {}
+    if os.path.isfile(settings_path):
+        with open(settings_path) as fp:
+            settings = json.load(fp)
+
+    didChange = False
+    for setting, val in RECOMMENDED_VSCODE_SETTINGS.items():
+        existing_setting = settings.get(setting, None) # type: ignore
+        if existing_setting and existing_setting != val:
+            print(f'Setting {setting} is already set to {existing_setting}. We won\'t touch it but recommend to set it to {val}')
+            continue
+        if existing_setting == val:
+            continue
+
+        settings[setting] = val
+        didChange = True
+
+    if didChange:
+        logger.info(f'Detected some changes, dumping them to {settings_path}')
+        if not os.path.isdir(settings_dir):
+            logger.debug(f'Directory {settings_dir} is missing, creating it')
+            os.mkdir(settings_dir)
+
+        with open(settings_path, 'wt+') as fp:
+            fp.write(json.dumps(settings))
+        logger.debug(f'Done writing settings at {settings_path}')
+    else:
+        logger.info('No changes detected')
+
+    return True
+
+def query_yes_no(question: str) -> bool:
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
+    prompt = " [y/N] "
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower()
+        # No input --> default to None.
+        if choice == "":
+            return False
+
+        if choice in valid:
+            return valid[choice]
+
+        # Anything else, re-prompt.
+        sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
 
 def install_all() -> None:
     # Check the Python version.
@@ -207,6 +271,10 @@ def install_all() -> None:
         logger.fatal('The version of Python is too old, make sure you have a version >= 3.13.\n\nYou can download a new version at:  https://www.python.org/downloads/\n\nThen check your version using: python --version')
 
     logger.info("Passed Python version check")
+    path = os.getcwd()
+    if not yes and not query_yes_no(f"We are about to set up a VSCode workspace in the following directory: {path}.\n\n Do you want to proceed?"):
+        return
+
     if not maybe_install_vscode():
         print('Failed to install VSCode, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
         return
@@ -215,14 +283,22 @@ def install_all() -> None:
         print('Failed to install VSCode extensions, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
         return
 
+    if not setup_vscode_settings(path):
+        print('Failed to set up the .vscode/settings file, let us know what happened so we can fix this script!')
+        return
+
     print('All done 🌟🌟🌟')
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-log", "--log", help="Provide logging level. Example --log debug'")
+parser.add_argument(
+    "-y", "--yes", help="Answer yes to all answers.'", action='store_true')
 
-log_level = parser.parse_args().log
+args = parser.parse_args()
+log_level = args.log
+yes: bool = args.yes
 logging.basicConfig(level=log_level)
 logger = logging.getLogger('setup.py')
 logger.debug(log_level)
