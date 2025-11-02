@@ -7,7 +7,6 @@ the Technical Interview Preparation classes, both 101 & 102.
 The script will:
 * Install the latest version of VSCode (if not installed)
 * Install the recommended extensions (when not installed)
-# TODO: Add some logic to chooose auto-formatter (autopep8 or black)
 '''
 import argparse
 import logging
@@ -25,13 +24,14 @@ import sys
 # https://marketplace.visualstudio.com/
 # You can find the full name in the URL and the command to install an individual extension.
 # TODO: Add MS-vsliveshare.vsliveshare, a pretty popular extension for live sharing?
-COMMON_VSCODE_EXTENSIONS = ['ms-python.python']
+AUTOINSTALLED_VSCODE_EXTENSIONS = ['ms-python.python']
 
 # This is the list of recommended settings to set in .vscode/settings.json.
 # See the function setup_vscode_settings for the merging behavior.
 RECOMMENDED_VSCODE_SETTINGS = {
     "python.analysis.typeCheckingMode": "strict"
 }
+
 
 def vscode_download_url(version: str) -> str:
     logger.debug(f'Running on platform: {platform.system()}')
@@ -64,33 +64,35 @@ def vscode_download_url(version: str) -> str:
 def maybe_vscode_cmd() -> str | None:
     return shutil.which('code')
 
+
 def vscode_cmd() -> str:
     maybe_cmd = maybe_vscode_cmd()
     if not maybe_cmd:
         logger.fatal('VSCode is not in PATH when it should have!')
-    return maybe_cmd # type: ignore
+    return maybe_cmd  # type: ignore
+
 
 def vscode_file_extension() -> str:
-        match platform.system():
-            case 'Linux':
-                info = platform.freedesktop_os_release()
-                id = info["ID"]
-                match id:
-                    # Deb-based distributions.
-                    case 'ubuntu' | 'debian':
-                        return '.deb'
+    match platform.system():
+        case 'Linux':
+            info = platform.freedesktop_os_release()
+            id = info["ID"]
+            match id:
+                # Deb-based distributions.
+                case 'ubuntu' | 'debian':
+                    return '.deb'
 
-                    # Rpm-based distributions.
-                    case 'rhel' | 'fedora':
-                        return '.rpm'
-                    case _:
-                        return ''
-            case 'Darwin':
-                return ''
-            case 'Windows':
-                return '.exe'
-            case _:
-                return ''
+                # Rpm-based distributions.
+                case 'rhel' | 'fedora':
+                    return '.rpm'
+                case _:
+                    return ''
+        case 'Darwin':
+            return ''
+        case 'Windows':
+            return '.exe'
+        case _:
+            return ''
 
 
 def maybe_install_vscode() -> bool:
@@ -141,12 +143,14 @@ def maybe_install_vscode() -> bool:
                 match id:
                     # Deb-based distributions.
                     case 'ubuntu' | 'debian':
-                        output = subprocess.run(['sudo', 'apt', 'install', '-y', fp.name])
+                        output = subprocess.run(
+                            ['sudo', 'apt', 'install', '-y', fp.name])
                         return output.returncode == 0
 
                     # Rpm-based distributions.
                     case 'rhel' | 'fedora':
-                        output = subprocess.run(['sudo', 'dnf', 'install', '-y', fp.name])
+                        output = subprocess.run(
+                            ['sudo', 'dnf', 'install', '-y', fp.name])
                         return output.returncode == 0
 
                     case _:
@@ -177,7 +181,7 @@ def install_extension(ext: str) -> bool:
     return output.returncode == 0
 
 
-def maybe_install_vscode_extensions() -> bool:
+def maybe_install_vscode_extensions(extensions: list[str]) -> bool:
     '''
         This function may installs VSCode extensions that are missing on the system
 
@@ -188,7 +192,7 @@ def maybe_install_vscode_extensions() -> bool:
     logger.debug(installed_extensions)
 
     exts: list[str] = []
-    for ext in COMMON_VSCODE_EXTENSIONS:
+    for ext in extensions:
         if ext not in installed_extensions:
             exts.append(ext)
 
@@ -203,6 +207,7 @@ def maybe_install_vscode_extensions() -> bool:
             return False
 
     return True
+
 
 def setup_vscode_settings(path: str) -> bool:
     '''
@@ -223,9 +228,10 @@ def setup_vscode_settings(path: str) -> bool:
 
     didChange = False
     for setting, val in RECOMMENDED_VSCODE_SETTINGS.items():
-        existing_setting = settings.get(setting, None) # type: ignore
+        existing_setting = settings.get(setting, None)  # type: ignore
         if existing_setting and existing_setting != val:
-            print(f'Setting {setting} is already set to {existing_setting}. We won\'t touch it but recommend to set it to {val}')
+            print(
+                f'Setting {setting} is already set to {existing_setting}. We won\'t touch it but recommend to set it to {val}')
             continue
         if existing_setting == val:
             continue
@@ -247,6 +253,7 @@ def setup_vscode_settings(path: str) -> bool:
 
     return True
 
+
 def query_yes_no(question: str) -> bool:
     valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     prompt = " [y/N] "
@@ -262,7 +269,36 @@ def query_yes_no(question: str) -> bool:
             return valid[choice]
 
         # Anything else, re-prompt.
-        sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
+        sys.stdout.write(
+            "Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
+
+
+def query_auto_formatter() -> str | None:
+    AUTOFORMAT_VSCODE_EXTENSIONS = [
+        'ms-python.autopep8',
+        'ms-python.black-formatter',
+    ]
+    valid = {'1': 0, 'auto': 0, 'autopep8': 0, '2': 1, 'bl': 1, 'black': 1}
+    prompt = '''We recommend installing an autoformatter and support:
+1. autopep8
+2. black
+3. Neither
+[1/2/3] '''
+
+    while True:
+        sys.stdout.write(prompt)
+        choice = input().lower()
+        # No input --> default to None.
+        if choice == "":
+            return None
+
+        if choice in valid:
+            return AUTOFORMAT_VSCODE_EXTENSIONS[valid[choice]]
+
+        # Anything else, re-prompt.
+        sys.stdout.write(
+            "Please respond with 1/2/3 (or 'auto' or 'black').\n")
+
 
 def install_all() -> None:
     # Check the Python version.
@@ -279,7 +315,15 @@ def install_all() -> None:
         print('Failed to install VSCode, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
         return
 
-    if not maybe_install_vscode_extensions():
+    extensions = AUTOINSTALLED_VSCODE_EXTENSIONS
+    if not yes:
+        formatter = query_auto_formatter()
+        logger.debug(f'Chosen formatter: {formatter}')
+        if formatter:
+            extensions.append(formatter)
+        # TODO: Include some extra settings for the auto formatter.
+
+    if not maybe_install_vscode_extensions(extensions):
         print('Failed to install VSCode extensions, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
         return
 
