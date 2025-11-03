@@ -29,7 +29,7 @@ AUTOINSTALLED_VSCODE_EXTENSIONS = [
 # This is the list of recommended settings to set in .vscode/settings.json.
 # See the function setup_vscode_settings for the merging behavior.
 RECOMMENDED_VSCODE_SETTINGS = {
-    "python.analysis.typeCheckingMode": "strict"
+    'python.analysis.typeCheckingMode': 'strict'
 }
 
 
@@ -39,7 +39,7 @@ def vscode_download_url(version: str) -> str:
         case 'Linux':
             # TODO: This logic is pretty brittle.
             info = platform.freedesktop_os_release()
-            id = info["ID"]
+            id = info['ID']
             logger.debug(f'Detected a Linux instance, with id={id}')
             match id:
                 # Deb-based distributions.
@@ -76,7 +76,7 @@ def vscode_file_extension() -> str:
     match platform.system():
         case 'Linux':
             info = platform.freedesktop_os_release()
-            id = info["ID"]
+            id = info['ID']
             match id:
                 # Deb-based distributions.
                 case 'ubuntu' | 'debian':
@@ -138,7 +138,7 @@ def maybe_install_vscode() -> bool:
         match platform.system():
             case 'Linux':
                 info = platform.freedesktop_os_release()
-                id = info["ID"]
+                id = info['ID']
                 logger.debug(f'Detected a Linux instance, with id={id}')
                 match id:
                     # Deb-based distributions.
@@ -255,14 +255,14 @@ def setup_vscode_settings(path: str) -> bool:
 
 
 def query_yes_no(question: str) -> bool:
-    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
-    prompt = " [y/N] "
+    valid = {'yes': True, 'y': True, 'ye': True, 'no': False, 'n': False}
+    prompt = ' [y/N] '
 
     while True:
         sys.stdout.write(question + prompt)
         choice = input().lower()
         # No input --> default to None.
-        if choice == "":
+        if choice == '':
             return False
 
         if choice in valid:
@@ -270,7 +270,7 @@ def query_yes_no(question: str) -> bool:
 
         # Anything else, re-prompt.
         sys.stdout.write(
-            "Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
+            "Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
 def query_auto_formatter() -> str | None:
@@ -278,18 +278,20 @@ def query_auto_formatter() -> str | None:
         'ms-python.autopep8',
         'ms-python.black-formatter',
     ]
-    valid = {'1': 0, 'auto': 0, 'autopep8': 0, '2': 1, 'bl': 1, 'black': 1}
+    valid = {'1': 0, 'a': 0, 'auto': 0, 'autopep8': 0,
+             '2': 1, 'b': 1, 'black': 1,
+             '3': 2, 'n': 2}
     prompt = '''We recommend installing an autoformatter and support:
 1. autopep8
 2. black
-3. Neither
-[1/2/3] '''
+3. Do nothing
+[1/2/3] (default: 3)'''
 
     while True:
         sys.stdout.write(prompt)
         choice = input().lower()
         # No input --> default to None.
-        if choice == "":
+        if choice == '':
             return None
 
         if choice in valid:
@@ -302,13 +304,13 @@ def query_auto_formatter() -> str | None:
 
 def install_all() -> None:
     # Check the Python version.
-    logger.debug(f"sys.hexversion: {hex(sys.hexversion)}")
+    logger.debug(f'sys.hexversion: {hex(sys.hexversion)}')
     if sys.hexversion < 0x030D00F0:
         logger.fatal('The version of Python is too old, make sure you have a version >= 3.13.\n\nYou can download a new version at:  https://www.python.org/downloads/\n\nThen check your version using: python --version')
 
-    logger.info("Passed Python version check")
+    logger.info('Passed Python version check')
     path = os.getcwd()
-    if not yes and not query_yes_no(f"We are about to set up a VSCode workspace in the following directory: {path}.\n\n Do you want to proceed?"):
+    if not yes and not query_yes_no(f'We are about to set up a VSCode workspace in the following directory: {path}.\n\n Do you want to proceed?'):
         return
 
     if not maybe_install_vscode():
@@ -336,9 +338,9 @@ def install_all() -> None:
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-log", "--log", help="Provide logging level. Example --log debug'")
+    '-log', '--log', help='Provide logging level. Example --log debug')
 parser.add_argument(
-    "-y", "--yes", help="Answer yes to all answers.'", action='store_true')
+    '-y', '--yes', help='Answer yes to all answers.', action='store_true')
 
 args = parser.parse_args()
 log_level = args.log
