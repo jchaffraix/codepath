@@ -362,7 +362,14 @@ Let us know what you found out as it is not expected.''')
 
     setup_vscode_settings(path)
 
-    print('🌟🌟🌟 All done 🌟🌟🌟')
+    print('''✅ All done 🌟🌟🌟
+
+Next steps:
+- Create a Python file in VSCode and run it to confirm that everything works.
+- Make VSCode your own by installing a theme from https://vscodethemes.com
+- Setup GitHub Copilot: https://code.visualstudio.com/docs/copilot/setup
+
+Make sure to check your first unit's IDE tab for more tips''')
 
 
 parser = argparse.ArgumentParser()
