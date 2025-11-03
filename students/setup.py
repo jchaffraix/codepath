@@ -26,6 +26,12 @@ import sys
 AUTOINSTALLED_VSCODE_EXTENSIONS = [
     'ms-python.python', 'ms-vsliveshare.vsliveshare']
 
+# List of autoformatters. The user can select at most one to install.
+AUTOFORMAT_VSCODE_EXTENSIONS = [
+    'ms-python.autopep8',
+    'ms-python.black-formatter',
+]
+
 # This is the list of recommended settings to set in .vscode/settings.json.
 # See the function setup_vscode_settings for the merging behavior.
 RECOMMENDED_VSCODE_SETTINGS = {
@@ -103,7 +109,7 @@ def maybe_install_vscode() -> bool:
         Returns True if VScode is present on the system, either already installed or newly installed.
     '''
     if maybe_vscode_cmd() is not None:
-        print('Found a VSCode installation, skipping installation... 🌟')
+        print('Found a previous VSCode installation')
         return True
 
     logger.debug('About to download the stable versions of VSCode')
@@ -125,7 +131,8 @@ def maybe_install_vscode() -> bool:
 
     logger.debug(f'Latest version {versions[0]}')
     url = vscode_download_url(versions[0])  # type: ignore
-    logger.debug(f'About to download from {url}')
+    print(f'Downloading the latest VSCode')
+    logger.debug(f'Downloading latest VSCode from {url}')
     content = urllib.request.urlopen(url).read()
     if not content:
         logger.error('Got an empty payload instead of vscode binary')
@@ -197,10 +204,10 @@ def maybe_install_vscode_extensions(extensions: list[str]) -> bool:
             exts.append(ext)
 
     if not exts:
-        print(f'No extensions to install 🌟')
+        print(f'No extensions to install')
         return True
 
-    print(f'Installing {exts}')
+    print(f'Installing the following extensions: {','.join(exts)}')
     for ext in exts:
         if not install_extension(ext):
             logger.error(f'Failed to install extension {ext}')
@@ -209,7 +216,7 @@ def maybe_install_vscode_extensions(extensions: list[str]) -> bool:
     return True
 
 
-def setup_vscode_settings(path: str) -> bool:
+def setup_vscode_settings(path: str) -> None:
     '''
         Set up .vscode/settings.json based on RECOMMENDED_VSCODE_SETTINGS.
 
@@ -251,8 +258,6 @@ def setup_vscode_settings(path: str) -> bool:
     else:
         logger.info('No changes detected')
 
-    return True
-
 
 def query_yes_no(question: str) -> bool:
     valid = {'yes': True, 'y': True, 'ye': True, 'no': False, 'n': False}
@@ -274,18 +279,15 @@ def query_yes_no(question: str) -> bool:
 
 
 def query_auto_formatter() -> str | None:
-    AUTOFORMAT_VSCODE_EXTENSIONS = [
-        'ms-python.autopep8',
-        'ms-python.black-formatter',
-    ]
     valid = {'1': 0, 'a': 0, 'auto': 0, 'autopep8': 0,
              '2': 1, 'b': 1, 'black': 1,
-             '3': 2, 'n': 2}
-    prompt = '''We recommend installing an autoformatter and support:
-1. autopep8
+             '3': 2, 'n': 2, 'no': 2}
+    prompt = '''We recommend installing one of the following autoformatter:
+1. autopep8 [recommended]
 2. black
-3. Do nothing
-[1/2/3] (default: 3)'''
+3. Do not install an autoformatter
+
+[1/2/3] (default: 3) '''
 
     while True:
         sys.stdout.write(prompt)
@@ -295,7 +297,10 @@ def query_auto_formatter() -> str | None:
             return None
 
         if choice in valid:
-            return AUTOFORMAT_VSCODE_EXTENSIONS[valid[choice]]
+            idx = valid[choice]
+            if idx >= len(AUTOFORMAT_VSCODE_EXTENSIONS):
+                return None
+            return AUTOFORMAT_VSCODE_EXTENSIONS[idx]
 
         # Anything else, re-prompt.
         sys.stdout.write(
@@ -306,16 +311,38 @@ def install_all() -> None:
     # Check the Python version.
     logger.debug(f'sys.hexversion: {hex(sys.hexversion)}')
     if sys.hexversion < 0x030D00F0:
-        logger.fatal('The version of Python is too old, make sure you have a version >= 3.13.\n\nYou can download a new version at:  https://www.python.org/downloads/\n\nThen check your version using: python --version')
+        logger.fatal('''😢 Unfortunately your version of Python is too old!
 
+You can download a new version at:  https: // www.python.org/downloads/
+
+Then check your version using "python --version" (without quotes). The version should be 3.13 or more.''')
     logger.info('Passed Python version check')
+
+    print('''👋 Welcome!
+
+This script will install and setup VSCode (the recommended IDE).
+
+Before we get started, let's confirm the directory for the VSCode workspace.
+This will be the directory where you want to create code for the class.
+''')
     path = os.getcwd()
-    if not yes and not query_yes_no(f'We are about to set up a VSCode workspace in the following directory: {path}.\n\n Do you want to proceed?'):
-        return
+    if yes:
+        print('🗒️ Check skipped due to -y/--yes')
+    else:
+        if not query_yes_no(f'We will set up a VSCode workspace in: {path}.\n\nIs that what you want?'):
+            print(
+                '''Ok, change the current directory to where you want. Bye for now! 👋''')
+            return
 
     if not maybe_install_vscode():
-        print('Failed to install VSCode, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
+        print('''❌ Failed to install VSCode!
+
+If you're curious, you can get more details about what happened script by adding --log=DEBUG after the script.
+Let us know what you found out as it is not expected.
+
+Alternatively, you can install it manually from: https://code.visualstudio.com/download''')
         return
+    print('✅ Installed VScode, adding some extension')
 
     extensions = AUTOINSTALLED_VSCODE_EXTENSIONS
     if not yes:
@@ -326,28 +353,31 @@ def install_all() -> None:
         # TODO: Include some extra settings for the auto formatter.
 
     if not maybe_install_vscode_extensions(extensions):
-        print('Failed to install VSCode extensions, let us know what happened so we can fix this script!\n\nYou can install to install it manually from: https://code.visualstudio.com/download')
-        return
+        print('''❌ Failed to install VSCode extensions
 
-    if not setup_vscode_settings(path):
-        print('Failed to set up the .vscode/settings file, let us know what happened so we can fix this script!')
+If you're curious, you can get more details about what happened script by adding --log=DEBUG after the script.
+Let us know what you found out as it is not expected.''')
         return
+    print('✅ Installed VScode extensions, writing to settings.json')
 
-    print('All done 🌟🌟🌟')
+    setup_vscode_settings(path)
+
+    print('🌟🌟🌟 All done 🌟🌟🌟')
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '-log', '--log', help='Provide logging level. Example --log debug')
+    '-log', '--log', help='''Set the logging level (default=WARNING). Options: info|debug|warning|error|critical.' \
+'Example usage: --log debug''')
 parser.add_argument(
-    '-y', '--yes', help='Answer yes to all answers.', action='store_true')
+    '-y', '--yes', help='Answer yes to all questions. Useful for automated testing.', action='store_true')
 
 args = parser.parse_args()
 log_level = args.log
 yes: bool = args.yes
 logging.basicConfig(level=log_level)
 logger = logging.getLogger('setup.py')
-logger.debug(log_level)
+logger.debug(f'Log level set to: {log_level}')
 
 if __name__ == '__main__':
     install_all()
