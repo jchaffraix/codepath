@@ -23,8 +23,8 @@ import sys
 # The list should be the full extension name in the MarketPlace:
 # https://marketplace.visualstudio.com/
 # You can find the full name in the URL and the command to install an individual extension.
-# TODO: Add MS-vsliveshare.vsliveshare, a pretty popular extension for live sharing?
-AUTOINSTALLED_VSCODE_EXTENSIONS = ['ms-python.python']
+AUTOINSTALLED_VSCODE_EXTENSIONS = [
+    'ms-python.python', 'ms-vsliveshare.vsliveshare']
 
 # This is the list of recommended settings to set in .vscode/settings.json.
 # See the function setup_vscode_settings for the merging behavior.
