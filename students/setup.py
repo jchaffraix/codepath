@@ -7,6 +7,7 @@ the Technical Interview Preparation classes, both 101 & 102.
 The script will:
 * Install the latest version of VSCode (if not installed)
 * Install the recommended extensions (when not installed)
+* Update settings.json on the student's chosen file.
 '''
 import argparse
 import logging
