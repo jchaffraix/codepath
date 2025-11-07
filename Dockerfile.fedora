@@ -1,0 +1,16 @@
+FROM fedora:latest
+
+RUN dnf update && dnf install -y python3 su sudo
+
+RUN useradd -ms /bin/bash user
+RUN echo "user    ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/user
+RUN chmod 440 /etc/sudoers.d/user
+# This is a work-around for PAM issues:
+# https://github.com/geerlingguy/docker-rockylinux9-ansible/issues/6#issuecomment-2671053863
+RUN chmod 0400 /etc/shadow
+
+USER user
+WORKDIR /home/user
+
+COPY students/setup.py .
+RUN python setup.py -y --log=DEBUG
