@@ -314,7 +314,7 @@ def install_all() -> None:
     if sys.hexversion < 0x030D00F0:
         logger.fatal('''😢 Unfortunately your version of Python is too old!
 
-You can download a new version at:  https: // www.python.org/downloads/
+You can download a new version at:  https://www.python.org/downloads/
 
 Then check your version using "python --version" (without quotes). The version should be 3.13 or more.''')
     logger.info('Passed Python version check')
