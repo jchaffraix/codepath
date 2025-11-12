@@ -375,8 +375,7 @@ Make sure to check your first unit's IDE tab for more tips''')
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '-log', '--log', help='''Set the logging level (default=WARNING). Options: info|debug|warning|error|critical.' \
-'Example usage: --log debug''')
+    '-log', '--log', help='Set the logging level (default=WARNING). Options: info|debug|warning|error|critical.')
 parser.add_argument(
     '-y', '--yes', help='Answer yes to all questions. Useful for automated testing.', action='store_true')
 
