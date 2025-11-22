@@ -42,6 +42,18 @@ RECOMMENDED_VSCODE_SETTINGS = {
 }
 
 
+def uprint(s: str):
+    '''
+        Small wrapper around `print` to handle different encoding
+
+        This is useful for Windows as it may not use UTF-8.
+
+        For more context, see the discussion on:
+        https://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined
+    '''
+    print(s.encode(sys.stdout.encoding, errors='replace'))
+
+
 def vscode_download_url(version: str) -> str:
     logger.debug(f'Running on platform: {platform.system()}')
     match platform.system():
@@ -112,7 +124,7 @@ def maybe_install_vscode() -> bool:
         Returns True if VScode is present on the system, either already installed or newly installed.
     '''
     if maybe_vscode_cmd() is not None:
-        print('Found a previous VSCode installation')
+        uprint('Found a previous VSCode installation')
         return True
 
     logger.debug('About to download the stable versions of VSCode')
@@ -134,7 +146,7 @@ def maybe_install_vscode() -> bool:
 
     logger.debug(f'Latest version {versions[0]}')
     url = vscode_download_url(versions[0])  # type: ignore
-    print(f'Downloading the latest VSCode')
+    uprint(f'Downloading the latest VSCode')
     logger.debug(f'Downloading latest VSCode from {url}')
     content = urllib.request.urlopen(url).read()
     if not content:
@@ -214,10 +226,10 @@ def maybe_install_vscode_extensions(extensions: list[str]) -> bool:
             exts.append(ext)
 
     if not exts:
-        print(f'No extensions to install')
+        uprint(f'No extensions to install')
         return True
 
-    print(f'Installing the following extensions: {','.join(exts)}')
+    uprint(f'Installing the following extensions: {','.join(exts)}')
     for ext in exts:
         if not install_extension(ext):
             logger.error(f'Failed to install extension {ext}')
@@ -247,7 +259,7 @@ def setup_vscode_settings(path: str) -> None:
     for setting, val in RECOMMENDED_VSCODE_SETTINGS.items():
         existing_setting = settings.get(setting, None)  # type: ignore
         if existing_setting and existing_setting != val:
-            print(
+            uprint(
                 f'Setting {setting} is already set to {existing_setting}. We won\'t touch it but recommend to set it to {val}')
             continue
         if existing_setting == val:
@@ -328,7 +340,7 @@ You can download a new version at:  https://www.python.org/downloads/
 Then check your version using "python --version" (without quotes). The version should be 3.13 or more.''')
     logger.info('Passed Python version check')
 
-    print('''👋 Welcome!
+    uprint('''👋 Welcome!
 
 This script will install and setup VSCode (the recommended IDE).
 
@@ -337,22 +349,22 @@ This will be the directory where you want to create code for the class.
 ''')
     path = os.getcwd()
     if yes:
-        print('🗒️ Check skipped due to -y/--yes')
+        uprint('🗒️ Check skipped due to -y/--yes')
     else:
         if not query_yes_no(f'We will set up a VSCode workspace in: {path}.\n\nIs that what you want?'):
-            print(
+            uprint(
                 '''Ok, change the current directory to where you want. Bye for now! 👋''')
             return
 
     if not maybe_install_vscode():
-        print('''❌ Failed to install VSCode!
+        uprint('''❌ Failed to install VSCode!
 
 If you're curious, you can get more details about what happened script by adding --log=DEBUG after the script.
 Let us know what you found out as it is not expected.
 
 Alternatively, you can install it manually from: https://code.visualstudio.com/download''')
         return
-    print('✅ Installed VScode, adding some extension')
+    uprint('✅ Installed VScode, adding some extension')
 
     extensions = AUTOINSTALLED_VSCODE_EXTENSIONS
     if not yes:
@@ -363,16 +375,16 @@ Alternatively, you can install it manually from: https://code.visualstudio.com/d
         # TODO: Include some extra settings for the auto formatter.
 
     if not maybe_install_vscode_extensions(extensions):
-        print('''❌ Failed to install VSCode extensions
+        uprint('''❌ Failed to install VSCode extensions
 
 If you're curious, you can get more details about what happened script by adding --log=DEBUG after the script.
 Let us know what you found out as it is not expected.''')
         return
-    print('✅ Installed VScode extensions, writing to settings.json')
+    uprint('✅ Installed VScode extensions, writing to settings.json')
 
     setup_vscode_settings(path)
 
-    print('''✅ All done 🌟🌟🌟
+    uprint('''✅ All done 🌟🌟🌟
 
 Next steps:
 - Create a Python file in VSCode and run it to confirm that everything works.
