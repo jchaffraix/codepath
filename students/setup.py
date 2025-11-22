@@ -20,6 +20,8 @@ import tempfile
 import urllib.request
 import sys
 
+from pathlib import Path
+
 
 # The list should be the full extension name in the MarketPlace:
 # https://marketplace.visualstudio.com/
@@ -95,7 +97,7 @@ def vscode_file_extension() -> str:
                 case _:
                     return ''
         case 'Darwin':
-            return ''
+            return '.zip'
         case 'Windows':
             return '.exe'
         case _:
@@ -165,10 +167,17 @@ def maybe_install_vscode() -> bool:
                         logger.fatal(
                             f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
                         return False
-            case 'Darwin' | 'Windows':
-                # For MacOS/Windows, the file is an installer so make it runnable.
+            case 'Windows':
+                # For Windows, the file is an installer so make it runnable.
                 os.chmod(fp.name, 0x755)
                 output = subprocess.run([fp.name])
+                return output.returncode == 0
+            case 'Darwin':
+                # For Mac, the file is a zip file to unzip in the user's
+                # applications directory.
+                app_path = Path.home() / 'Applications'
+                output = subprocess.run(
+                    ['unzip', fp.name, '-d', str(app_path)])
                 return output.returncode == 0
             case _:
                 logger.fatal(f'Unsupported platform {platform.system()}')
