@@ -154,46 +154,53 @@ def maybe_install_vscode() -> bool:
         return False
     logger.debug(f'Successfully downloaded VSCode')
 
-    with tempfile.NamedTemporaryFile(suffix=vscode_file_extension()) as fp:
+    # On Windows, a file can't open twice - for writing and executing.
+    # The downloaded file should be first closed before executing it.
+    #
+    # The combination of flags should trigger deletion of the file on program close.
+    downloaded_path: str = ''
+    with tempfile.NamedTemporaryFile(suffix=vscode_file_extension(), delete=True, delete_on_close=False) as fp:
         logger.debug(f'Temporary file: {fp.name}')
+        downloaded_path = fp.name
         fp.write(content)
-        match platform.system():
-            case 'Linux':
-                info = platform.freedesktop_os_release()
-                id = info['ID']
-                logger.debug(f'Detected a Linux instance, with id={id}')
-                match id:
-                    # Deb-based distributions.
-                    case 'ubuntu' | 'debian':
-                        output = subprocess.run(
-                            ['sudo', 'apt', 'install', '-y', fp.name])
-                        return output.returncode == 0
 
-                    # Rpm-based distributions.
-                    case 'rhel' | 'fedora':
-                        output = subprocess.run(
-                            ['sudo', 'dnf', 'install', '-y', fp.name])
-                        return output.returncode == 0
+    match platform.system():
+        case 'Linux':
+            info = platform.freedesktop_os_release()
+            id = info['ID']
+            logger.debug(f'Detected a Linux instance, with id={id}')
+            match id:
+                # Deb-based distributions.
+                case 'ubuntu' | 'debian':
+                    output = subprocess.run(
+                        ['sudo', 'apt', 'install', '-y', downloaded_path])
+                    return output.returncode == 0
 
-                    case _:
-                        logger.fatal(
-                            f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
-                        return False
-            case 'Windows':
-                # For Windows, the file is an installer so make it runnable.
-                os.chmod(fp.name, 0x755)
-                output = subprocess.run([fp.name])
-                return output.returncode == 0
-            case 'Darwin':
-                # For Mac, the file is a zip file to unzip in the user's
-                # applications directory.
-                app_path = Path.home() / 'Applications'
-                output = subprocess.run(
-                    ['unzip', fp.name, '-d', str(app_path)])
-                return output.returncode == 0
-            case _:
-                logger.fatal(f'Unsupported platform {platform.system()}')
-                return False
+                # Rpm-based distributions.
+                case 'rhel' | 'fedora':
+                    output = subprocess.run(
+                        ['sudo', 'dnf', 'install', '-y', downloaded_path])
+                    return output.returncode == 0
+
+                case _:
+                    logger.fatal(
+                        f'Unhandled Linux version {id}. We only support DEB or RPM based distributions.\nIf that matches your distribution, let us know so we can fix it.')
+                    return False
+        case 'Windows':
+            # For Windows, the file is an installer so make it runnable.
+            os.chmod(downloaded_path, 0x755)
+            output = subprocess.run([downloaded_path])
+            return output.returncode == 0
+        case 'Darwin':
+            # For Mac, the file is a zip file to unzip in the user's
+            # applications directory.
+            app_path = Path.home() / 'Applications'
+            output = subprocess.run(
+                ['unzip', downloaded_path, '-d', str(app_path)])
+            return output.returncode == 0
+        case _:
+            logger.fatal(f'Unsupported platform {platform.system()}')
+            return False
 
 
 def get_existing_vscode_extensions() -> set[str]:
