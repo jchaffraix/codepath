@@ -156,14 +156,13 @@ def maybe_install_vscode() -> bool:
 
     # On Windows, a file can't open twice - for writing and executing.
     # The downloaded file should be first closed before executing it.
-    #
-    # The combination of flags should trigger deletion of the file on program close.
+    # TODO: This doesn't cleans the file.
     downloaded_path: str = ''
-    with tempfile.NamedTemporaryFile(suffix=vscode_file_extension(), delete=True, delete_on_close=False) as fp:
-        logger.debug(f'Temporary file: {fp.name}')
+    with tempfile.NamedTemporaryFile(suffix=vscode_file_extension(), delete=False) as fp:
         downloaded_path = fp.name
         fp.write(content)
 
+    logger.debug(f'Wrote VSCode artifact to temporary file: {downloaded_path}')
     match platform.system():
         case 'Linux':
             info = platform.freedesktop_os_release()
