@@ -82,8 +82,17 @@ def vscode_download_url(version: str) -> str:
             return ''
 
 
+# Cached path to VSCode.
+# This is needed as Mac may install VSCode outside the path.
+_cached_vscode_path: str | None = None
+
+
 def maybe_vscode_cmd() -> str | None:
-    return shutil.which('code')
+    global _cached_vscode_path
+    if _cached_vscode_path:
+        return _cached_vscode_path
+    _cached_vscode_path = shutil.which('code')
+    return _cached_vscode_path
 
 
 def vscode_cmd() -> str:
@@ -196,6 +205,12 @@ def maybe_install_vscode() -> bool:
             app_path = Path.home() / 'Applications'
             output = subprocess.run(
                 ['unzip', downloaded_path, '-d', str(app_path)])
+            if output.returncode == 0:
+                # Cache the VSCode path if we're successful.
+                global _cached_vscode_path
+                _cached_vscode_path = str(app_path / 'Visual Studio Code.app' / 'Contents' /
+                                          'Resources' / 'app' / 'bin' / 'code')
+
             return output.returncode == 0
         case _:
             logger.fatal(f'Unsupported platform {platform.system()}')
