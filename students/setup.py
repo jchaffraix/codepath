@@ -197,7 +197,12 @@ def maybe_install_vscode() -> bool:
         case 'Windows':
             # For Windows, the file is an installer so make it runnable.
             os.chmod(downloaded_path, 0x755)
-            output = subprocess.run([downloaded_path])
+            cmd = [downloaded_path]
+            if yes:
+                # Those commands run VSCode install silently based on this thread:
+                # https://stackoverflow.com/questions/42582230/how-to-install-visual-studio-code-silently-without-auto-open-when-installation
+                cmd.extend(['/VERYSILENT', '/MERGETASKS=!runcode'])
+            output = subprocess.run(cmd)
             return output.returncode == 0
         case 'Darwin':
             # For Mac, the file is a zip file to unzip in the user's
