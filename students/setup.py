@@ -41,6 +41,10 @@ RECOMMENDED_VSCODE_SETTINGS = {
     'python.analysis.typeCheckingMode': 'strict'
 }
 
+# Cached (global) path to VSCode.
+# This is needed as Mac installs VSCode outside of PATH.
+_g_cached_vscode_path: str | None = None
+
 
 def uprint(s: str):
     '''
@@ -82,17 +86,12 @@ def vscode_download_url(version: str) -> str:
             return ''
 
 
-# Cached path to VSCode.
-# This is needed as Mac may install VSCode outside the path.
-_cached_vscode_path: str | None = None
-
-
 def maybe_vscode_cmd() -> str | None:
-    global _cached_vscode_path
-    if _cached_vscode_path:
-        return _cached_vscode_path
-    _cached_vscode_path = shutil.which('code')
-    return _cached_vscode_path
+    global _g_cached_vscode_path
+    if _g_cached_vscode_path:
+        return _g_cached_vscode_path
+    _g_cached_vscode_path = shutil.which('code')
+    return _g_cached_vscode_path
 
 
 def vscode_cmd() -> str:
@@ -171,6 +170,7 @@ def maybe_install_vscode() -> bool:
         downloaded_path = fp.name
         fp.write(content)
 
+    global _g_cached_vscode_path
     logger.debug(f'Wrote VSCode artifact to temporary file: {downloaded_path}')
     match platform.system():
         case 'Linux':
@@ -209,8 +209,7 @@ def maybe_install_vscode() -> bool:
             if vscode_binary_path.exists():
                 logger.info(
                     f'Found an existing installation of VSCode in {str(vscode_app_path)}, reusing it...')
-                global _cached_vscode_path
-                _cached_vscode_path = str(vscode_binary_path)
+                _g_cached_vscode_path = str(vscode_binary_path)
                 return True
             if vscode_app_path.exists():
                 uprint(
@@ -223,8 +222,7 @@ This may indicate a failed installation. You can safely delete {str(vscode_app_p
                 ['unzip', downloaded_path, '-d', str(app_path)])
             if output.returncode == 0:
                 # Cache the VSCode path if we're successful.
-                global _cached_vscode_path
-                _cached_vscode_path = str(vscode_binary_path)
+                _g_cached_vscode_path = str(vscode_binary_path)
             return output.returncode == 0
         case _:
             logger.fatal(f'Unsupported platform {platform.system()}')
