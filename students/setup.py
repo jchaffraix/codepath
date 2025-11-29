@@ -203,14 +203,28 @@ def maybe_install_vscode() -> bool:
             # For Mac, the file is a zip file to unzip in the user's
             # applications directory.
             app_path = Path.home() / 'Applications'
+            vscode_app_path = app_path / 'Visual Studio Code.app'
+            vscode_binary_path = vscode_app_path / \
+                'Contents' / 'Resources' / 'app' / 'bin' / 'code'
+            if vscode_binary_path.exists():
+                logger.info(
+                    f'Found an existing installation of VSCode in {str(vscode_app_path)}, reusing it...')
+                global _cached_vscode_path
+                _cached_vscode_path = str(vscode_binary_path)
+                return True
+            if vscode_app_path.exists():
+                uprint(
+                    f'''💥💥💥 Found an existing installation of VSCode in {str(vscode_app_path)}, but no binary.
+
+This may indicate a failed installation. You can safely delete {str(vscode_app_path)} and retry this script.''')
+                return False
+
             output = subprocess.run(
                 ['unzip', downloaded_path, '-d', str(app_path)])
             if output.returncode == 0:
                 # Cache the VSCode path if we're successful.
                 global _cached_vscode_path
-                _cached_vscode_path = str(app_path / 'Visual Studio Code.app' / 'Contents' /
-                                          'Resources' / 'app' / 'bin' / 'code')
-
+                _cached_vscode_path = str(vscode_binary_path)
             return output.returncode == 0
         case _:
             logger.fatal(f'Unsupported platform {platform.system()}')
