@@ -42,7 +42,9 @@ RECOMMENDED_VSCODE_SETTINGS = {
 }
 
 # Cached (global) path to VSCode.
-# This is needed as Mac installs VSCode outside of PATH.
+# This is needed as:
+# - Mac installs VSCode outside of PATH.
+# - The Windows installer updates %PATH% but this requires a console restart.
 _g_cached_vscode_path: str | None = None
 
 
@@ -203,6 +205,18 @@ def maybe_install_vscode() -> bool:
                 # https://stackoverflow.com/questions/42582230/how-to-install-visual-studio-code-silently-without-auto-open-when-installation
                 cmd.extend(['/VERYSILENT', '/MERGETASKS=!runcode'])
             output = subprocess.run(cmd)
+            if output.returncode == 0:
+                # Installer automatically adds to PATH but this doesn't trigger
+                # until the user restarts the console, thus we have to manually add it.
+                vscode_binary_path = Path.home() /\
+                    'AppData' / 'Local' / 'Programs' / 'Microsoft VS Code' / 'code'
+                if not vscode_binary_path.exists():
+                    uprint(f"""Couldn't find the VSCode binary at {str(vscode_binary_path)}...
+
+It is likely VSCode was installed it in a different directory.
+The fix is to restart your console (which will update %PATH%) and re-run this script.""")
+                    return False
+                _g_cached_vscode_path = str(vscode_binary_path)
             return output.returncode == 0
         case 'Darwin':
             # For Mac, the file is a zip file to unzip in the user's
